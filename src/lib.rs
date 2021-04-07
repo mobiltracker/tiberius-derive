@@ -2,7 +2,7 @@ use proc_macro::{self, TokenStream};
 use quote::quote;
 use syn::{parse_macro_input, DeriveInput, FieldsNamed};
 
-#[proc_macro_derive(TiberiusRow)]
+#[proc_macro_derive(TiberiusRow, attributes(Owned))]
 pub fn tiberius_row(input: TokenStream) -> TokenStream {
     let DeriveInput { ident, data, .. } = parse_macro_input!(input);
 
@@ -13,10 +13,17 @@ pub fn tiberius_row(input: TokenStream) -> TokenStream {
                 .map(|f| {
                     let field = f.ident.unwrap();
                     let f_type = f.ty;
-               
+
                     quote! {
                         #field:  {
                             macro_rules! unwrap_nullable {
+                                (String) => {
+                                    __row.try_get::<&str, &str>(stringify!(#field))?.expect(&format!("Failed to get field {}",stringify!(#field))).to_owned()
+
+                                };
+                                (Option<String>) => {
+                                    __row.try_get::<&str, &str>(stringify!(#field))?.map(|f|f.to_owned())
+                                };
                                 (Option<$f_type: ty>) => {
                                     __row.try_get(stringify!(#field))?
                                 };
