@@ -2,8 +2,8 @@ use proc_macro::{self, TokenStream};
 use quote::quote;
 use syn::{parse_macro_input, DeriveInput, FieldsNamed};
 
-#[proc_macro_derive(TiberiusRow, attributes(Nullable))]
-pub fn describe(input: TokenStream) -> TokenStream {
+#[proc_macro_derive(TiberiusRow)]
+pub fn tiberius_row(input: TokenStream) -> TokenStream {
     let DeriveInput { ident, data, .. } = parse_macro_input!(input);
 
     let fields = match data {
@@ -12,35 +12,19 @@ pub fn describe(input: TokenStream) -> TokenStream {
                 .into_iter()
                 .map(|f| {
                     let field = f.ident.unwrap();
-
-                    let nullable = if f.attrs.len() == 0 {
-                        true
-                    } else {
-                        // let attr = f.attrs.first().unwrap();
-                        let mut is_nullable = true;
-
-                        for attr in f.attrs {
-                            if attr.path.is_ident("Nullable") {
-                                let lit: syn::LitBool = attr.parse_args().unwrap();
-                                is_nullable = lit.value
-                            }
-                        }
-
-                        is_nullable
-                    };
-
+                    let f_type = f.ty;
+               
                     quote! {
                         #field:  {
                             macro_rules! unwrap_nullable {
-                                (true) => {
+                                (Option<$f_type: ty>) => {
                                     __row.try_get(stringify!(#field))?
                                 };
-                                (false) => {
-                                    __row.try_get(stringify!(#field))?.unwrap()
+                                ($f_type: ty) => {
+                                    __row.try_get(stringify!(#field))?.expect(&format!("Failed to get field {}",stringify!(#field)))
                                 };
-                            };
-
-                            unwrap_nullable!(#nullable)
+                            }
+                            unwrap_nullable!(#f_type)
                         }
                     }
                 })

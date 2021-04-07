@@ -843,21 +843,13 @@ dependencies = [
 ]
 
 [[package]]
-name = "tiberius_derive"
+name = "tiberius-derive"
 version = "0.1.0"
 dependencies = [
  "proc-macro2",
  "quote",
  "syn",
  "tiberius",
-]
-
-[[package]]
-name = "tiberius_derive_bin"
-version = "0.1.0"
-dependencies = [
- "tiberius",
- "tiberius_derive",
 ]
 
 [[package]]
