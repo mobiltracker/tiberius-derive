@@ -1,0 +1,16 @@
+[package]
+name = "tiberius_derive"
+version = "0.1.0"
+authors = ["mlcruz1 <mlcruz@inf.ufrgs.br>"]
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+tiberius = "0.5.12"
+syn = { version = "1.0", features = ["full"] }
+quote = "1.0"
+proc-macro2 = "1.0"
+
+[lib]
+proc-macro = true
