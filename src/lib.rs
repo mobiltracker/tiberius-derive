@@ -2,7 +2,7 @@ use proc_macro::{self, TokenStream};
 use quote::quote;
 use syn::{parse_macro_input, DeriveInput, FieldsNamed};
 
-#[proc_macro_derive(TiberiusRow, attributes(Owned))]
+#[proc_macro_derive(TiberiusRow)]
 pub fn tiberius_row(input: TokenStream) -> TokenStream {
     let DeriveInput { ident, data, .. } = parse_macro_input!(input);
 
