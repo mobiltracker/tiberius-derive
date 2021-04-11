@@ -8,9 +8,17 @@ edition = "2018"
 
 [dependencies]
 tiberius = "0.5.12"
+tiberius-derive-traits = {path = "../tiberius-derive-traits" }
 syn = { version = "1.0", features = ["full"] }
 quote = "1.0"
 proc-macro2 = "1.0"
 
 [lib]
 proc-macro = true
+
+[[test]]
+name = "tests"
+path = "tests/test.rs"
+
+[dev-dependencies]
+trybuild = { version = "1.0", features = ["diff"] }
