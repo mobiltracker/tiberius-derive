@@ -1,6 +1,8 @@
+use darling::{ast::Fields, FromDeriveInput};
 use proc_macro::{self, TokenStream};
 use quote::quote;
-use syn::{parse_macro_input, DeriveInput, FieldsNamed};
+use syn::{parse_macro_input, DeriveInput, Field, FieldsNamed, Variant};
+use tiberius_derive_traits::FromRowOpts;
 
 // impl<'a> FromRow<'a> for Foobar<'a> {
 //     fn from_row(__row: &'a tiberius::Row) -> Result<Foobar<'a>, tiberius::error::Error> {
@@ -14,13 +16,19 @@ use syn::{parse_macro_input, DeriveInput, FieldsNamed};
 
 #[proc_macro_derive(FromRow)]
 pub fn from_row(input: TokenStream) -> TokenStream {
-    let DeriveInput { ident, data, .. } = parse_macro_input!(input);
+    let derive_input: DeriveInput = parse_macro_input!(input);
+
+    let FromRowOpts {
+        ident,
+        attrs,
+        owned,
+        data,
+    } = FromRowOpts::<Variant, Field>::from_derive_input(&derive_input).unwrap();
+
+    // syn::Fields::Named(FieldsNamed { named, .. }) => named.into_iter(),
 
     let fields = match data {
-        syn::Data::Struct(s) => match s.fields {
-            syn::Fields::Named(FieldsNamed { named, .. }) => named.into_iter(),
-            _ => unimplemented!(),
-        },
+        darling::ast::Data::Struct(Fields { fields, .. }) => fields.into_iter(),
         _ => unimplemented!(),
     };
 

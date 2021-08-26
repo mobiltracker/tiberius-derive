@@ -8,3 +8,5 @@ edition = "2018"
 
 [dependencies]
 tiberius = "0.5.12"
+darling = "0.13.0"
+syn = "1.0"
