@@ -8,15 +8,26 @@ pub trait FromRow<'a> {
         Self: std::marker::Sized;
 }
 
+pub trait FromRowOwned {
+    fn from_row(__row: tiberius::Row) -> Result<Self, tiberius::error::Error>
+    where
+        Self: std::marker::Sized;
+}
+
+#[allow(dead_code, unused_must_use)]
+fn pad(row: tiberius::Row) -> Result<(), tiberius::error::Error> {
+    Ok(())
+}
+
 #[derive(Default, FromMeta)]
-#[darling(default)]
-pub struct Owned(Option<()>);
+pub struct Borrowed;
 
 #[derive(FromDeriveInput)]
 #[darling(attributes(tiberius_derive), forward_attrs(allow, doc, cfg))]
 pub struct FromRowOpts<V: darling::FromVariant, F: darling::FromField> {
     pub ident: syn::Ident,
     pub attrs: Vec<syn::Attribute>,
-    pub owned: Owned,
+    #[darling(default)]
+    pub borrowed: Option<Borrowed>,
     pub data: darling::ast::Data<V, F>,
 }

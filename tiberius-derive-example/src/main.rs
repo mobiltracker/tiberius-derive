@@ -1,11 +1,10 @@
 use std::usize;
 use tiberius_derive::FromRow;
 
-//#[derive(RowExt)]
 #[derive(FromRow)]
-struct Foobar<'a> {
+struct Foobar {
     pub foo: Option<i32>,
-    pub bar: Option<&'a str>,
+    pub bar: Option<String>,
 }
 
 // impl<'a> FromRow<'a> for Foobar<'a> {

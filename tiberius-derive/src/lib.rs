@@ -21,7 +21,7 @@ pub fn from_row(input: TokenStream) -> TokenStream {
     let FromRowOpts {
         ident,
         attrs,
-        owned,
+        borrowed,
         data,
     } = FromRowOpts::<Variant, Field>::from_derive_input(&derive_input).unwrap();
 
@@ -32,27 +32,49 @@ pub fn from_row(input: TokenStream) -> TokenStream {
         _ => unimplemented!(),
     };
 
-    let try_get_field = fields.clone().enumerate().map(|(idx, field)| {
+    let fields = fields.clone().enumerate().map(|(idx, field)| {
         let f_ident = field.ident.unwrap();
         let f_type = field.ty;
 
-        quote! {
-            #f_ident: {
-                let #f_ident = __row.try_get(#idx)?;
-                #f_ident
-            }
-        }
+        (idx, f_type, f_ident)
     });
 
-    let expanded = quote! {
-        impl<'a> tiberius_derive_traits::FromRow<'a> for #ident<'a>{
-            fn from_row(__row: &'a tiberius::Row) -> Result<#ident<'a>, tiberius::error::Error> {
-                Ok(Self{#(
-                    #try_get_field,
-                )*})
+    //     if borrowed.0.is_some() {
+    //         quote! {
+    //             #f_ident: {
+    //                 let #f_ident = __row.try_get(#idx)?;
+    //                 #f_ident
+    //             }
+    //         }
+    //     } else {
+    //         quote! {
+    //             #f_ident: {
+    //                 let #f_ident = __row.try_get(#idx)?;
+    //                 #f_ident
+    //             }
+    //         }
+    //     }
+    // });
+
+    let expanded = if borrowed.is_some() {
+        quote! {
+            impl<'a> tiberius_derive_traits::FromRow<'a> for #ident<'a>{
+                fn from_row(__row: &'a tiberius::Row) -> Result<#ident<'a>, tiberius::error::Error> {
+                    todo!();
+                }
             }
         }
-
+    } else {
+        quote! {
+            impl tiberius_derive_traits::FromRowOwned for #ident{
+                fn from_row(__row: tiberius::Row) -> Result<#ident, tiberius::error::Error> {
+                    // Ok(Self{#(
+                    //     #try_get_field,
+                    // )*})
+                    todo!();
+                }
+            }
+        }
     };
 
     expanded.into()
