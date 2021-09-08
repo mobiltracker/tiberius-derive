@@ -1,18 +1,9 @@
-use darling::{ast::Fields, FromDeriveInput};
+use darling::{FromDeriveInput, ast::Fields, usage::GenericsExt};
 use proc_macro::{self, TokenStream};
+use proc_macro2::Ident;
 use quote::quote;
-use syn::{parse_macro_input, DeriveInput, Field, FieldsNamed, Variant};
+use syn::{parse_macro_input, DeriveInput, Field, Variant};
 use tiberius_derive_traits::FromRowOpts;
-
-// impl<'a> FromRow<'a> for Foobar<'a> {
-//     fn from_row(__row: &'a tiberius::Row) -> Result<Foobar<'a>, tiberius::error::Error> {
-//         let foo = __row.get(0);
-//         let bar = __row.get(1);
-//         let xar = __row.get::<&'a str, usize>(2).expect("foobar");
-
-//         Ok(Self { bar, foo, xar })
-//     }
-// }
 
 #[proc_macro_derive(FromRow)]
 pub fn from_row(input: TokenStream) -> TokenStream {
@@ -20,13 +11,18 @@ pub fn from_row(input: TokenStream) -> TokenStream {
 
     let FromRowOpts {
         ident,
-        attrs,
-        borrowed,
+        attrs: _,
+        borrowed: _,
         data,
-    } = FromRowOpts::<Variant, Field>::from_derive_input(&derive_input).unwrap();
+        generics,
+    } = FromRowOpts::<syn::Generics,Variant, Field>::from_derive_input(&derive_input).unwrap();
 
     // syn::Fields::Named(FieldsNamed { named, .. }) => named.into_iter(),
+    let generics : syn::Generics = generics;
 
+    let lifetimes = generics.declared_lifetimes();
+    
+    
     let fields = match data {
         darling::ast::Data::Struct(Fields { fields, .. }) => fields.into_iter(),
         _ => unimplemented!(),
@@ -36,46 +32,54 @@ pub fn from_row(input: TokenStream) -> TokenStream {
         let f_ident = field.ident.unwrap();
         let f_type = field.ty;
 
-        (idx, f_type, f_ident)
-    });
-
-    //     if borrowed.0.is_some() {
-    //         quote! {
-    //             #f_ident: {
-    //                 let #f_ident = __row.try_get(#idx)?;
-    //                 #f_ident
-    //             }
-    //         }
-    //     } else {
-    //         quote! {
-    //             #f_ident: {
-    //                 let #f_ident = __row.try_get(#idx)?;
-    //                 #f_ident
-    //             }
-    //         }
-    //     }
-    // });
-
-    let expanded = if borrowed.is_some() {
         quote! {
-            impl<'a> tiberius_derive_traits::FromRow<'a> for #ident<'a>{
-                fn from_row(__row: &'a tiberius::Row) -> Result<#ident<'a>, tiberius::error::Error> {
-                    todo!();
-                }
+        #f_ident: {
+         
+            macro_rules! unwrap_nullable {
+                (Option<$f_type: ty>) => {
+                    __row.try_get(stringify!(#f_ident))?
+                };
+                ($f_type: ty) => {
+                    __row.try_get(stringify!(#f_ident))?.expect(&format!("Failed to get field {}",stringify!(#f_ident)))
+                };
+            };
+
+            unwrap_nullable!(#f_type)
             }
         }
+    }).collect::<Vec<_>>();
+
+    let expanded = if lifetimes.len() == 1 {
+        expand_borrowed(ident,fields)
     } else {
-        quote! {
-            impl tiberius_derive_traits::FromRowOwned for #ident{
-                fn from_row(__row: tiberius::Row) -> Result<#ident, tiberius::error::Error> {
-                    // Ok(Self{#(
-                    //     #try_get_field,
-                    // )*})
-                    todo!();
-                }
-            }
-        }
+        expand_copy(ident, fields)
     };
+    
 
     expanded.into()
+}
+
+fn expand_borrowed(ident: Ident, fields: Vec<proc_macro2::TokenStream>)-> proc_macro2::TokenStream {
+    quote! {
+        impl<'a> tiberius_derive_traits::FromRow<'a> for #ident<'a>{
+            fn from_row(__row: &'a tiberius::Row) -> Result<#ident<'a>, tiberius::error::Error> {
+                Ok(Self{
+                    #(#fields,)*
+                })
+            }
+        }
+    }
+}
+
+
+fn expand_copy(ident: Ident, fields: Vec<proc_macro2::TokenStream>)-> proc_macro2::TokenStream {
+    quote! {
+        impl tiberius_derive_traits::FromRowCopy for #ident{
+            fn from_row(__row: &tiberius::Row) -> Result<#ident, tiberius::error::Error> {
+                Ok(Self{
+                    #(#fields,)*
+                })
+            }
+        }
+    }
 }

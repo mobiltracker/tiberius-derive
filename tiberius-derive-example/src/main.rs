@@ -2,20 +2,15 @@ use std::usize;
 use tiberius_derive::FromRow;
 
 #[derive(FromRow)]
-struct Foobar {
+struct Foobar<'b> {
     pub foo: Option<i32>,
-    pub bar: Option<String>,
+    pub bar: Option<&'b str>,
 }
 
-// impl<'a> FromRow<'a> for Foobar<'a> {
-//     fn from_row(__row: &'a tiberius::Row) -> Result<Foobar<'a>, tiberius::error::Error> {
-//         let foo = __row.get(0);
-//         let bar = __row.get(1);
-//         let xar = __row.get::<&'a str, usize>(2).expect("foobar");
-
-//         Ok(Self { bar, foo, xar })
-//     }
-// }
+#[derive(FromRow)]
+struct FoobarNoLifetime {
+    pub foo: Option<i32>,
+}
 
 fn main() {
     println!("Hello, world!");
