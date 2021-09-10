@@ -1,5 +1,6 @@
 use crate::from_row_opts::FromRowOpts;
 use darling::{ast::Fields, usage::GenericsExt, FromDeriveInput};
+use from_row_opts::RenameRule;
 use proc_macro::{self, TokenStream};
 use proc_macro2::Ident;
 use quote::quote;
@@ -17,6 +18,7 @@ pub fn from_row(input: TokenStream) -> TokenStream {
         data,
         by_index,
         generics,
+        rename_all
     } = FromRowOpts::<syn::Generics, Variant, Field>::from_derive_input(&derive_input).unwrap();
 
     let generics: syn::Generics = generics;
@@ -34,7 +36,7 @@ pub fn from_row(input: TokenStream) -> TokenStream {
         if by_index.is_some() {
             try_get_rows_by_index(fields)
         }else{
-            try_get_rows_by_key(fields)
+            try_get_rows_by_key(fields,rename_all)
         }
     };
 
@@ -55,6 +57,8 @@ fn try_get_rows_from_iter_owned(fields: std::vec::IntoIter<Field>) -> Vec<proc_m
     fields.clone().enumerate().map(|(idx, field)| {
         let f_ident = field.ident.unwrap();
         let f_type = field.ty;
+
+        
         quote! {
         #f_ident: {
             macro_rules! unwrap_nullable {
@@ -109,22 +113,25 @@ fn try_get_rows_by_index(fields: std::vec::IntoIter<Field>) -> Vec<proc_macro2::
     }).collect::<Vec<_>>()
 }
 
-fn try_get_rows_by_key(fields: std::vec::IntoIter<Field>) -> Vec<proc_macro2::TokenStream> {
+fn try_get_rows_by_key(fields: std::vec::IntoIter<Field>, rename_rule: RenameRule) -> Vec<proc_macro2::TokenStream> {
     fields.clone().map(|field| {
-        let f_ident = field.ident.unwrap();
+        let f_ident =  field.ident.unwrap();
         let f_type = field.ty;
+        let f_ident_string = &f_ident.to_string();
+        let field_renamed = &rename_rule.0.apply_to_field(f_ident_string);
+
 
         quote! {
         #f_ident: {
             macro_rules! unwrap_nullable {
                 (Option<$f_type: ty>) => {
-                    row.try_get(stringify!(#f_ident))?
+                    row.try_get(#field_renamed)?
                 };
                 ($f_type: ty) => {
-                    row.try_get(stringify!(#f_ident))?
+                    row.try_get(#field_renamed)?
                          .ok_or_else(
                             || tiberius::error::Error::Conversion(
-                                format!(r" None value for non optional field {}", stringify!(#f_ident).into())
+                                format!(r" None value for non optional field {}", stringify!(#f_ident)).into()
                             )
                         )?          
                 };

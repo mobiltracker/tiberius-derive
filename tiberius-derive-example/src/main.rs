@@ -25,6 +25,13 @@ struct FoobarByIndex {
     pub bar: i32,
 }
 
+#[derive(FromRow)]
+#[tiberius_derive(rename_all = "camelCase")]
+struct FoobarRenamed {
+    pub foo_bar: Option<i32>,
+    pub bar_foo: i32,
+}
+
 fn main() {
     println!("Hello, world!");
 }
