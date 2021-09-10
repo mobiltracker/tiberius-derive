@@ -11,11 +11,12 @@ struct Foobar<'b> {
 struct FoobarNoLifetime {
     pub foo: Option<i32>,
 }
-
-// #[derive(FromRow)]
-// struct FoobarOwned {
-//     pub foo: Option<String>,
-// }
+#[derive(FromRow)]
+#[tiberius_derive(owned)]
+struct FoobarOwned {
+    pub foo: Option<String>,
+    pub bar: String,
+}
 
 fn main() {
     println!("Hello, world!");
