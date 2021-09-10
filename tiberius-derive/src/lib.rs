@@ -15,6 +15,7 @@ pub fn from_row(input: TokenStream) -> TokenStream {
         attrs: _,
         owned,
         data,
+        by_index,
         generics,
     } = FromRowOpts::<syn::Generics, Variant, Field>::from_derive_input(&derive_input).unwrap();
 
@@ -28,9 +29,13 @@ pub fn from_row(input: TokenStream) -> TokenStream {
     };
 
     let fields = if owned.is_some() {
-        row_from_iter_owned(fields)
+        try_get_rows_from_iter_owned(fields)
     } else {
-        try_get_rows(fields)
+        if by_index.is_some() {
+            try_get_rows_by_index(fields)
+        }else{
+            try_get_rows_by_key(fields)
+        }
     };
 
     let expanded = if owned.is_some() {
@@ -46,7 +51,7 @@ pub fn from_row(input: TokenStream) -> TokenStream {
     expanded.into()
 }
 
-fn row_from_iter_owned(fields: std::vec::IntoIter<Field>) -> Vec<proc_macro2::TokenStream> {
+fn try_get_rows_from_iter_owned(fields: std::vec::IntoIter<Field>) -> Vec<proc_macro2::TokenStream> {
     fields.clone().enumerate().map(|(idx, field)| {
         let f_ident = field.ident.unwrap();
         let f_type = field.ty;
@@ -55,23 +60,21 @@ fn row_from_iter_owned(fields: std::vec::IntoIter<Field>) -> Vec<proc_macro2::To
             macro_rules! unwrap_nullable {
                 (Option<$f_type: ty>) => {
                     <String as tiberius::FromSqlOwned>::from_sql_owned(row_iter.next().ok_or_else(
-                        || tiberius::error::Error::Io {
-                            kind: std::io::ErrorKind::InvalidData,
-                            message: format!("Failed to get from row: field {} not found in position {}", stringify!(#f_ident), #idx),
-                        }
+                        || tiberius::error::Error::Conversion(
+                            format!("Could not find field {} from column with index {}", stringify!(#f_ident), #idx).into()
+                        )
                     )?)?
                     };
                 ($f_type: ty) => {
                     (<String as tiberius::FromSqlOwned>::from_sql_owned(row_iter.next().ok_or_else(
-                        || tiberius::error::Error::Io {
-                            kind: std::io::ErrorKind::InvalidData,
-                            message: format!("Failed to get from row: field {} not found in position {}", stringify!(#f_ident), #idx),
-                        }
+                        || tiberius::error::Error::Conversion(
+                            format!("Could not find field {} from column with index {}", stringify!(#f_ident), #idx).into()
+                        )
                     )?)?).ok_or_else(
-                        || tiberius::error::Error::Io {
-                            kind: std::io::ErrorKind::InvalidData,
-                            message: format!("Failed to parse row: 'None' value for non optional field {} in position {}", stringify!(#f_ident), #idx),
-                    })?
+                        || tiberius::error::Error::Conversion(
+                            format!(r" None value for non optional field {} from column with index {}", stringify!(#f_ident), #idx).into()
+                        )
+                    )?
                 };
             };
 
@@ -81,7 +84,32 @@ fn row_from_iter_owned(fields: std::vec::IntoIter<Field>) -> Vec<proc_macro2::To
     }).collect::<Vec<_>>()
 }
 
-fn try_get_rows(fields: std::vec::IntoIter<Field>) -> Vec<proc_macro2::TokenStream> {
+fn try_get_rows_by_index(fields: std::vec::IntoIter<Field>) -> Vec<proc_macro2::TokenStream> {
+    fields.clone().enumerate().map(|(idx,field)| {
+        let f_ident = field.ident.unwrap();
+        let f_type = field.ty;
+
+        quote! {
+        #f_ident: {
+            macro_rules! unwrap_nullable {
+                (Option<$f_type: ty>) => {
+                    row.try_get(#idx)?
+                };
+                ($f_type: ty) => {
+                    row.try_get(stringify!(#idx))?.ok_or_else(
+                        || tiberius::error::Error::Conversion(
+                            format!(r" None value for non optional field {} from column with index {}", stringify!(#f_ident), #idx).into()
+                            )
+                        )?
+                };
+            };
+            unwrap_nullable!(#f_type)
+            }
+        }
+    }).collect::<Vec<_>>()
+}
+
+fn try_get_rows_by_key(fields: std::vec::IntoIter<Field>) -> Vec<proc_macro2::TokenStream> {
     fields.clone().map(|field| {
         let f_ident = field.ident.unwrap();
         let f_type = field.ty;
@@ -90,10 +118,15 @@ fn try_get_rows(fields: std::vec::IntoIter<Field>) -> Vec<proc_macro2::TokenStre
         #f_ident: {
             macro_rules! unwrap_nullable {
                 (Option<$f_type: ty>) => {
-                    __row.try_get(stringify!(#f_ident))?
+                    row.try_get(stringify!(#f_ident))?
                 };
                 ($f_type: ty) => {
-                    __row.try_get(stringify!(#f_ident))?.expect(&format!("Failed to get field {}",stringify!(#f_ident)))
+                    row.try_get(stringify!(#f_ident))?
+                         .ok_or_else(
+                            || tiberius::error::Error::Conversion(
+                                format!(r" None value for non optional field {}", stringify!(#f_ident).into())
+                            )
+                        )?          
                 };
             };
 
@@ -106,8 +139,8 @@ fn try_get_rows(fields: std::vec::IntoIter<Field>) -> Vec<proc_macro2::TokenStre
 fn expand_owned(ident: Ident, fields: Vec<proc_macro2::TokenStream>) -> proc_macro2::TokenStream {
     quote! {
         impl tiberius_derive_traits::FromRowOwned for #ident{
-            fn from_row(__row: tiberius::Row) -> Result<#ident, tiberius::error::Error> {
-                let mut row_iter = __row.into_iter();
+            fn from_row(row: tiberius::Row) -> Result<Self, tiberius::error::Error> {
+                let mut row_iter = row.into_iter();
 
                 Ok(Self{
                     #(#fields,)*
@@ -123,7 +156,7 @@ fn expand_borrowed(
 ) -> proc_macro2::TokenStream {
     quote! {
         impl<'a> tiberius_derive_traits::FromRow<'a> for #ident<'a>{
-            fn from_row(__row: &'a tiberius::Row) -> Result<#ident<'a>, tiberius::error::Error> {
+            fn from_row(row: &'a tiberius::Row) -> Result<Self, tiberius::error::Error> {
                 Ok(Self{
                     #(#fields,)*
                 })
@@ -135,7 +168,7 @@ fn expand_borrowed(
 fn expand_copy(ident: Ident, fields: Vec<proc_macro2::TokenStream>) -> proc_macro2::TokenStream {
     quote! {
         impl tiberius_derive_traits::FromRowCopy for #ident{
-            fn from_row(__row: &tiberius::Row) -> Result<#ident, tiberius::error::Error> {
+            fn from_row(row: &tiberius::Row) -> Result<Self, tiberius::error::Error> {
                 Ok(Self{
                     #(#fields,)*
                 })
