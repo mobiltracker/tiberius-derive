@@ -8,7 +8,6 @@ edition = "2018"
 
 [dependencies]
 tiberius = "0.5"
-tiberius-derive-traits = {path = "../tiberius-derive-traits" }
 syn = { version = "1", features = ["full"] }
 quote = "1"
 proc-macro2 = "1"
