@@ -2,7 +2,7 @@ use crate::from_row_opts::FromRowOpts;
 use darling::{ast::Fields, usage::GenericsExt, FromDeriveInput};
 use from_row_opts::RenameRule;
 use proc_macro::{self, TokenStream};
-use proc_macro2::Ident;
+use proc_macro2::{Ident, Literal};
 use quote::quote;
 use syn::{parse_macro_input, DeriveInput, Field, Variant};
 mod from_row_opts;
@@ -32,29 +32,25 @@ pub fn from_row(input: TokenStream) -> TokenStream {
 
     let fields = if owned.is_some() {
         try_get_rows_from_iter_owned(fields)
-    } else {
-        if by_index.is_some() {
-            try_get_rows_by_index(fields)
-        }else{
-            try_get_rows_by_key(fields,rename_all)
-        }
+    } else if by_index.is_some() {
+        try_get_rows_by_index(fields)
+    }else{
+        try_get_rows_by_key(fields,rename_all)
     };
 
     let expanded = if owned.is_some() {
         expand_owned(ident, fields)
+    } else if lifetimes.len() == 1 {
+        expand_borrowed(ident, fields)
     } else {
-        if lifetimes.len() == 1 {
-            expand_borrowed(ident, fields)
-        } else {
-            expand_copy(ident, fields)
-        }
+        expand_copy(ident, fields)
     };
 
     expanded.into()
 }
 
 fn try_get_rows_from_iter_owned(fields: std::vec::IntoIter<Field>) -> Vec<proc_macro2::TokenStream> {
-    fields.clone().enumerate().map(|(idx, field)| {
+    fields.enumerate().map(|(idx, field)| {
         let f_ident = field.ident.unwrap();
         let f_type = field.ty;
 
@@ -89,20 +85,21 @@ fn try_get_rows_from_iter_owned(fields: std::vec::IntoIter<Field>) -> Vec<proc_m
 }
 
 fn try_get_rows_by_index(fields: std::vec::IntoIter<Field>) -> Vec<proc_macro2::TokenStream> {
-    fields.clone().enumerate().map(|(idx,field)| {
+    fields.enumerate().map(|(idx,field)| {
         let f_ident = field.ident.unwrap();
         let f_type = field.ty;
 
+        let idx_lit = Literal::usize_suffixed(idx);
         quote! {
         #f_ident: {
             macro_rules! unwrap_nullable {
                 (Option<$f_type: ty>) => {
-                    row.try_get(#idx)?
+                    row.try_get(#idx_lit)?
                 };
                 ($f_type: ty) => {
-                    row.try_get(stringify!(#idx))?.ok_or_else(
+                    row.try_get(#idx_lit)?.ok_or_else(
                         || tiberius::error::Error::Conversion(
-                            format!(r" None value for non optional field {} from column with index {}", stringify!(#f_ident), #idx).into()
+                            format!(r" None value for non optional field {} from column with index {}", stringify!(#f_ident), #idx_lit).into()
                             )
                         )?
                 };
@@ -114,7 +111,7 @@ fn try_get_rows_by_index(fields: std::vec::IntoIter<Field>) -> Vec<proc_macro2::
 }
 
 fn try_get_rows_by_key(fields: std::vec::IntoIter<Field>, rename_rule: RenameRule) -> Vec<proc_macro2::TokenStream> {
-    fields.clone().map(|field| {
+    fields.map(|field| {
         let f_ident =  field.ident.unwrap();
         let f_type = field.ty;
         let f_ident_string = &f_ident.to_string();

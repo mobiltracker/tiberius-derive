@@ -21,7 +21,7 @@ struct TestRow<'a> {
 }
 
 #[tokio::test]
-async fn it_works() -> Result<(), tiberius::error::Error> {
+async fn by_ref() -> Result<(), tiberius::error::Error> {
     let mut client = connect_localhost().await.unwrap();
     let query = r"
     SELECT
