@@ -59,14 +59,14 @@ fn try_get_rows_from_iter_owned(fields: std::vec::IntoIter<Field>) -> Vec<proc_m
         #f_ident: {
             macro_rules! unwrap_nullable {
                 (Option<$f_type: ty>) => {
-                    <String as tiberius::FromSqlOwned>::from_sql_owned(row_iter.next().ok_or_else(
+                    <$f_type as tiberius::FromSqlOwned>::from_sql_owned(row_iter.next().ok_or_else(
                         || tiberius::error::Error::Conversion(
                             format!("Could not find field {} from column with index {}", stringify!(#f_ident), #idx).into()
                         )
                     )?)?
                     };
                 ($f_type: ty) => {
-                    (<String as tiberius::FromSqlOwned>::from_sql_owned(row_iter.next().ok_or_else(
+                    (<$f_type as tiberius::FromSqlOwned>::from_sql_owned(row_iter.next().ok_or_else(
                         || tiberius::error::Error::Conversion(
                             format!("Could not find field {} from column with index {}", stringify!(#f_ident), #idx).into()
                         )
