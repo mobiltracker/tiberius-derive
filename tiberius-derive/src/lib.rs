@@ -18,11 +18,12 @@ pub fn from_row(input: TokenStream) -> TokenStream {
         data,
         by_position,
         generics,
-        rename_all
+        rename_all,
+        auto
     } = FromRowOpts::<syn::Generics, Variant, Field>::from_derive_input(&derive_input).unwrap();
 
     let generics: syn::Generics = generics;
-
+    let auto = auto.is_some();
     let lifetimes = generics.declared_lifetimes();
 
     let fields = match data {
@@ -33,9 +34,9 @@ pub fn from_row(input: TokenStream) -> TokenStream {
     let fields = if owned.is_some() {
         try_get_rows_from_iter_owned(fields)
     } else if by_position.is_some() {
-        try_get_rows_by_index(fields)
+        try_get_rows_by_index(fields, auto)
     }else{
-        try_get_rows_by_key(fields,rename_all)
+        try_get_rows_by_key(fields, rename_all, auto)
     };
 
     let expanded = if owned.is_some() {
@@ -84,59 +85,124 @@ fn try_get_rows_from_iter_owned(fields: std::vec::IntoIter<Field>) -> Vec<proc_m
     }).collect::<Vec<_>>()
 }
 
-fn try_get_rows_by_index(fields: std::vec::IntoIter<Field>) -> Vec<proc_macro2::TokenStream> {
+fn try_get_rows_by_index(fields: std::vec::IntoIter<Field>, auto: bool) -> Vec<proc_macro2::TokenStream> {
     fields.enumerate().map(|(idx,field)| {
         let f_ident = field.ident.unwrap();
         let f_type = field.ty;
 
         let idx_lit = Literal::usize_suffixed(idx);
-        quote! {
-        #f_ident: {
-            macro_rules! unwrap_nullable {
-                (Option<$f_type: ty>) => {
-                    row.try_get(#idx_lit)?
+        if auto {
+            quote! {
+                #f_ident: {
+                    macro_rules! unwrap_nullable {
+                        (String) => {
+                            row.try_get::<&str, &str>(#idx_lit)?.ok_or_else(
+                                || tiberius::error::Error::Conversion(
+                                    format!(r" None value for non optional field {} from column with index {}", stringify!(#f_ident), #idx_lit).into()
+                                    )
+                                )?.to_owned()
+                        };
+                        (Option<String>) => {
+                            row.try_get::<&str, &str>(#idx_lit)?.to_owned()
+                        };
+                        (Option<$f_type: ty>) => {
+                            row.try_get(#idx_lit)?
+                        };
+                        ($f_type: ty) => {
+                            row.try_get(#idx_lit)?.ok_or_else(
+                                || tiberius::error::Error::Conversion(
+                                    format!(r" None value for non optional field {} from column with index {}", stringify!(#f_ident), #idx_lit).into()
+                                    )
+                                )?
+                        };
+                    };
+                    unwrap_nullable!(#f_type)
+                    }
+                }
+        }
+        else {
+            quote! {
+            #f_ident: {
+                macro_rules! unwrap_nullable {
+                    (Option<$f_type: ty>) => {
+                        row.try_get(#idx_lit)?
+                    };
+                    ($f_type: ty) => {
+                        row.try_get(#idx_lit)?.ok_or_else(
+                            || tiberius::error::Error::Conversion(
+                                format!(r" None value for non optional field {} from column with index {}", stringify!(#f_ident), #idx_lit).into()
+                                )
+                            )?
+                    };
                 };
-                ($f_type: ty) => {
-                    row.try_get(#idx_lit)?.ok_or_else(
-                        || tiberius::error::Error::Conversion(
-                            format!(r" None value for non optional field {} from column with index {}", stringify!(#f_ident), #idx_lit).into()
-                            )
-                        )?
-                };
-            };
-            unwrap_nullable!(#f_type)
+                unwrap_nullable!(#f_type)
+                }
             }
+
         }
     }).collect::<Vec<_>>()
 }
 
-fn try_get_rows_by_key(fields: std::vec::IntoIter<Field>, rename_rule: RenameRule) -> Vec<proc_macro2::TokenStream> {
+fn try_get_rows_by_key(fields: std::vec::IntoIter<Field>, rename_rule: RenameRule, auto: bool) -> Vec<proc_macro2::TokenStream> {
     fields.map(|field| {
         let f_ident =  field.ident.unwrap();
         let f_type = field.ty;
         let f_ident_string = &f_ident.to_string();
         let field_renamed = &rename_rule.0.apply_to_field(f_ident_string);
 
-
-        quote! {
-        #f_ident: {
-            macro_rules! unwrap_nullable {
-                (Option<$f_type: ty>) => {
-                    row.try_get(#field_renamed)?
-                };
-                ($f_type: ty) => {
-                    row.try_get(#field_renamed)?
-                         .ok_or_else(
-                            || tiberius::error::Error::Conversion(
-                                format!(r" None value for non optional field {}", stringify!(#f_ident)).into()
-                            )
-                        )?          
-                };
-            };
-
-            unwrap_nullable!(#f_type)
-            }
+        if auto {
+            quote! {
+                #f_ident: {
+                    macro_rules! unwrap_nullable {
+                        (String) => {
+                            row.try_get::<&str, &str>(#field_renamed)?.ok_or_else(
+                                || tiberius::error::Error::Conversion(
+                                    format!(r" None value for non optional field {}", stringify!(#f_ident)).into()
+                                )
+                            )?.to_owned()
+                        };
+                        (Option<String>) => {
+                            row.try_get(#field_renamed)?.map(|s| s.to_owned())
+                        };
+                        (Option<$f_type: ty>) => {
+                            row.try_get(#field_renamed)?
+                        };
+                        ($f_type: ty) => {
+                            row.try_get(#field_renamed)?
+                                    .ok_or_else(
+                                    || tiberius::error::Error::Conversion(
+                                        format!(r" None value for non optional field {}", stringify!(#f_ident)).into()
+                                    )
+                                )?          
+                        };
+                    };
+    
+                    unwrap_nullable!(#f_type)
+                    }
+                }
+        } else { 
+            quote! {
+                #f_ident: {
+                    macro_rules! unwrap_nullable {
+                        (Option<$f_type: ty>) => {
+                            row.try_get(#field_renamed)?
+                        };
+                        ($f_type: ty) => {
+                            row.try_get(#field_renamed)?
+                                    .ok_or_else(
+                                    || tiberius::error::Error::Conversion(
+                                        format!(r" None value for non optional field {}", stringify!(#f_ident)).into()
+                                    )
+                                )?          
+                        };
+                    };
+    
+                    unwrap_nullable!(#f_type)
+                    }
+                }
         }
+
+
     }).collect::<Vec<_>>()
 }
 

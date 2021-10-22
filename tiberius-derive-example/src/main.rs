@@ -19,7 +19,7 @@ pub struct FoobarOwned {
 }
 
 #[derive(FromRow)]
-#[tiberius_derive(by_index)]
+#[tiberius_derive(by_position)]
 pub struct FoobarByIndex {
     pub foo: Option<i32>,
     pub bar: i32,
@@ -30,6 +30,31 @@ pub struct FoobarByIndex {
 pub struct FoobarRenamed {
     pub foo_bar: Option<i32>,
     pub bar_foo: i32,
+}
+
+#[derive(FromRow)]
+#[tiberius_derive(auto)]
+pub struct AutoOwnedStringNoLifetime {
+    pub foo_bar: String,
+    pub bar_foo: i32,
+}
+
+#[derive(FromRow)]
+#[tiberius_derive(auto)]
+pub struct AutoOwnedString<'a> {
+    pub foo_bar: String,
+    pub foo_bar_optional: Option<String>,
+    pub bar_foo: i32,
+    pub not_auto: &'a str,
+}
+
+#[derive(FromRow)]
+#[tiberius_derive(auto, by_position)]
+pub struct AutoOwnedStringByPosition<'a> {
+    pub foo_bar: String,
+    pub foo_bar_optional: Option<String>,
+    pub bar_foo: i32,
+    pub not_auto: &'a str,
 }
 
 impl FoobarRenamed {

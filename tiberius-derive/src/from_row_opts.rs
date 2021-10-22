@@ -1,6 +1,9 @@
 use darling::{FromDeriveInput, FromMeta};
 
 #[derive(Default, FromMeta)]
+pub struct Auto;
+
+#[derive(Default, FromMeta)]
 pub struct Owned;
 
 #[derive(Default, FromMeta)]
@@ -24,6 +27,8 @@ pub struct FromRowOpts<T: darling::FromGenerics, V: darling::FromVariant, F: dar
     pub owned: Option<Owned>,
     #[darling(default)]
     pub by_position: Option<ByPosition>,
+    #[darling(default)]
+    pub auto: Option<Auto>,
     pub data: darling::ast::Data<V, F>,
     pub generics: T,
     #[darling(default)]
