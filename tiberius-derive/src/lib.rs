@@ -96,14 +96,14 @@ fn try_get_rows_by_index(fields: std::vec::IntoIter<Field>, auto: bool) -> Vec<p
                 #f_ident: {
                     macro_rules! unwrap_nullable {
                         (String) => {
-                            row.try_get::<&str, &str>(#idx_lit)?.ok_or_else(
+                            row.try_get::<&str, usize>(#idx_lit)?.ok_or_else(
                                 || tiberius::error::Error::Conversion(
                                     format!(r" None value for non optional field {} from column with index {}", stringify!(#f_ident), #idx_lit).into()
                                     )
                                 )?.to_owned()
                         };
                         (Option<String>) => {
-                            row.try_get::<&str, &str>(#idx_lit)?.to_owned()
+                            row.try_get::<&str, usize>(#idx_lit)?.map(|s| s.to_owned())
                         };
                         (Option<$f_type: ty>) => {
                             row.try_get(#idx_lit)?
@@ -162,25 +162,25 @@ fn try_get_rows_by_key(fields: std::vec::IntoIter<Field>, rename_rule: RenameRul
                             )?.to_owned()
                         };
                         (Option<String>) => {
-                            row.try_get(#field_renamed)?.map(|s| s.to_owned())
+                            row.try_get::<&str, &str>(#field_renamed)?.map(|s| s.to_owned())
                         };
                         (Option<$f_type: ty>) => {
                             row.try_get(#field_renamed)?
                         };
                         ($f_type: ty) => {
                             row.try_get(#field_renamed)?
-                                    .ok_or_else(
-                                    || tiberius::error::Error::Conversion(
-                                        format!(r" None value for non optional field {}", stringify!(#f_ident)).into()
-                                    )
-                                )?          
+                            .ok_or_else(
+                                || tiberius::error::Error::Conversion(
+                                    format!(r" None value for non optional field {}", stringify!(#f_ident)).into()
+                                )
+                            )?          
                         };
                     };
-    
+                    
                     unwrap_nullable!(#f_type)
-                    }
                 }
-        } else { 
+            }
+        } else {
             quote! {
                 #f_ident: {
                     macro_rules! unwrap_nullable {
@@ -189,20 +189,19 @@ fn try_get_rows_by_key(fields: std::vec::IntoIter<Field>, rename_rule: RenameRul
                         };
                         ($f_type: ty) => {
                             row.try_get(#field_renamed)?
-                                    .ok_or_else(
-                                    || tiberius::error::Error::Conversion(
-                                        format!(r" None value for non optional field {}", stringify!(#f_ident)).into()
-                                    )
-                                )?          
+                            .ok_or_else(
+                                || tiberius::error::Error::Conversion(
+                                    format!(r" None value for non optional field {}", stringify!(#f_ident)).into()
+                                )
+                            )?          
                         };
                     };
-    
+                    
                     unwrap_nullable!(#f_type)
-                    }
                 }
+            }
         }
-
-
+        
     }).collect::<Vec<_>>()
 }
 

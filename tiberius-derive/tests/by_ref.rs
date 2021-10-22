@@ -6,6 +6,15 @@ pub struct Foobar<'a> {
     pub bar: Option<&'a str>,
 }
 
+#[derive(FromRow)]
+#[tiberius_derive(auto)]
+pub struct FoobarAuto<'a> {
+    pub foo: Option<i32>,
+    pub bar: Option<&'a str>,
+    pub auto: String,
+    pub auto_opt: Option<String>,
+}
+
 // impl<'a> Foobar<'a> {
 //     fn from_row(__row: &'a tiberius::Row) -> Result<Foobar<'a>, tiberius::error::Error> {
 //         Ok(Self {
