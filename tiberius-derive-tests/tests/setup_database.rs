@@ -1,0 +1,59 @@
+mod util;
+use crate::util::connect_localhost;
+
+#[ignore = "manual"]
+#[tokio::test]
+async fn test_database_up() {
+    let mut client = connect_localhost().await.unwrap();
+
+    client
+        .execute(r#"CREATE DATABASE TiberiusDeriveTest;"#, &[])
+        .await
+        .ok();
+
+    let query = r#"
+        CREATE TABLE [TiberiusDeriveTest].[dbo].[TestRow](
+            [Id] [int] NOT NULL,
+            [VarCharRow] [varchar](50) NULL,
+            [NVarCharRow] [nvarchar](15) NULL,
+            [UuidRow] [uniqueidentifier] NULL,
+            [LongRow] [bigint] NULL,
+            [DateTimeRow] [datetime] NULL,
+            [SmallIntRow] [smallint] NULL,
+            [BitRow] [bit] NULL,
+            [FloatRow] [float] NULL,
+            [RealRow] [real] NULL,
+        );
+    
+        "#;
+
+    client.execute(query, &[]).await.unwrap();
+}
+
+#[ignore = "manual"]
+#[tokio::test]
+async fn test_insert_rows() {
+    let mut client = connect_localhost().await.unwrap();
+
+    let test_row = r#"
+    INSERT INTO [TiberiusDeriveTest].[dbo].[TestRow] 
+    (Id,VarCharRow, NVarCharRow, UuidRow, LongRow, DateTimeRow, SmallIntRow, BitRow, FloatRow, RealRow) 
+    VALUES 
+    (1, 'varchar', 'nvarchar', '89e022ce-d3b6-43a7-a359-4618571487a6', 9999999999999999, '2021-01-01', 2, 1, 10.123123125, 10.5)
+    "#;
+
+    client.execute(test_row, &[]).await.unwrap();
+}
+
+#[ignore = "manual"]
+#[tokio::test]
+async fn test_datebase_down() {
+    let mut client = connect_localhost().await.unwrap();
+
+    let query = r#"
+    DELETE FROM [TiberiusDeriveTest].[dbo].[TestRow];
+    DROP DATABASE TiberiusDeriveTest;
+    "#;
+
+    client.execute(query, &[]).await.unwrap();
+}

@@ -1,0 +1,14 @@
+[package]
+name = "tiberius-derive-tests"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+tiberius = {version= "0.5.12", features = ["chrono"]}
+tiberius-derive = {path = "../tiberius-derive"}
+tokio = {version = "1.0", features = ["net", "time", "macros", "rt"]}
+once_cell = "*"
+tokio-util = { version = "0.6",features = ["compat"]}
+chrono = "0.4.19"
