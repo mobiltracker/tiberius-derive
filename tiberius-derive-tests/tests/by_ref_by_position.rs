@@ -6,7 +6,7 @@ use tiberius_derive::FromRow;
 mod util;
 
 #[derive(FromRow, Debug, Clone, PartialEq)]
-#[tiberius_derive(by_index)]
+#[tiberius_derive(by_position)]
 struct TestRow<'a> {
     pub id: i32,
     pub var_char_row: &'a str,

@@ -1,7 +1,7 @@
 use tiberius_derive::FromRow;
 
 #[derive(FromRow)]
-#[tiberius_derive(by_index)]
+#[tiberius_derive(by_position)]
 pub struct Foobar<'a> {
     pub foo: Option<i32>,
     pub bar: Option<&'a str>,

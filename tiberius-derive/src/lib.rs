@@ -16,7 +16,7 @@ pub fn from_row(input: TokenStream) -> TokenStream {
         attrs: _,
         owned,
         data,
-        by_index,
+        by_position,
         generics,
         rename_all
     } = FromRowOpts::<syn::Generics, Variant, Field>::from_derive_input(&derive_input).unwrap();
@@ -32,7 +32,7 @@ pub fn from_row(input: TokenStream) -> TokenStream {
 
     let fields = if owned.is_some() {
         try_get_rows_from_iter_owned(fields)
-    } else if by_index.is_some() {
+    } else if by_position.is_some() {
         try_get_rows_by_index(fields)
     }else{
         try_get_rows_by_key(fields,rename_all)

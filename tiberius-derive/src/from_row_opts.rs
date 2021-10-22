@@ -4,7 +4,7 @@ use darling::{FromDeriveInput, FromMeta};
 pub struct Owned;
 
 #[derive(Default, FromMeta)]
-pub struct ByIndex;
+pub struct ByPosition;
 
 #[derive(Debug, Default)]
 pub struct RenameRule(pub ident_case::RenameRule);
@@ -23,7 +23,7 @@ pub struct FromRowOpts<T: darling::FromGenerics, V: darling::FromVariant, F: dar
     #[darling(default)]
     pub owned: Option<Owned>,
     #[darling(default)]
-    pub by_index: Option<ByIndex>,
+    pub by_position: Option<ByPosition>,
     pub data: darling::ast::Data<V, F>,
     pub generics: T,
     #[darling(default)]
