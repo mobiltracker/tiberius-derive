@@ -13,8 +13,8 @@ async fn test_database_up() {
 
     let query = r#"
         CREATE TABLE [TiberiusDeriveTest].[dbo].[TestRow](
-            [Id] [int] NOT NULL,
-            [VarCharRow] [varchar](50) NULL,
+            [Id] [int] NOT NULL PRIMARY KEY,
+            [VarCharRow] [varchar] (50) NULL,
             [NVarCharRow] [nvarchar](15) NULL,
             [UuidRow] [uniqueidentifier] NULL,
             [LongRow] [bigint] NULL,
@@ -37,12 +37,20 @@ async fn test_insert_rows() {
 
     let test_row = r#"
     INSERT INTO [TiberiusDeriveTest].[dbo].[TestRow] 
-    (Id,VarCharRow, NVarCharRow, UuidRow, LongRow, DateTimeRow, SmallIntRow, BitRow, FloatRow, RealRow) 
+    (Id, VarCharRow, NVarCharRow, UuidRow, LongRow, DateTimeRow, SmallIntRow, BitRow, FloatRow, RealRow) 
     VALUES 
     (1, 'varchar', 'nvarchar', '89e022ce-d3b6-43a7-a359-4618571487a6', 9999999999999999, '2021-01-01', 2, 1, 10.123123125, 10.5)
     "#;
 
+    let test_row_null = r#"
+    INSERT INTO [TiberiusDeriveTest].[dbo].[TestRow] 
+    (Id) 
+    VALUES 
+    (2)
+    "#;
+
     client.execute(test_row, &[]).await.unwrap();
+    client.execute(test_row_null, &[]).await.unwrap();
 }
 
 #[ignore = "manual"]

@@ -27,6 +27,7 @@ async fn by_value() -> Result<(), tiberius::error::Error> {
         [Id],[VarCharRow],[NVarCharRow],[UuidRow],[LongRow],[DateTimeRow],[SmallIntRow],[BitRow],[FloatRow],[RealRow]
     FROM 
         [TiberiusDeriveTest].[dbo].[TestRow]
+    WHERE VarCharRow is not null
     ORDER BY ID
         ";
 

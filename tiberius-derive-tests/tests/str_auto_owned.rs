@@ -37,13 +37,14 @@ struct TestRowByPositionAuto {
 }
 
 #[tokio::test]
-async fn by_ref_auto() -> Result<(), tiberius::error::Error> {
+async fn by_ref_auto_not_null() -> Result<(), tiberius::error::Error> {
     let mut client = connect_localhost().await.unwrap();
     let query = r"
     SELECT
         [Id],[VarCharRow],[NVarCharRow],[UuidRow],[LongRow],[DateTimeRow],[SmallIntRow],[BitRow],[FloatRow],[RealRow]
     FROM 
         [TiberiusDeriveTest].[dbo].[TestRow]
+    WHERE VarCharRow is not null
     ORDER BY ID
         ";
 
@@ -79,13 +80,14 @@ async fn by_ref_auto() -> Result<(), tiberius::error::Error> {
 }
 
 #[tokio::test]
-async fn by_ref_by_position_auto() -> Result<(), tiberius::error::Error> {
+async fn by_ref_by_position_auto_not_null() -> Result<(), tiberius::error::Error> {
     let mut client = connect_localhost().await.unwrap();
     let query = r"
     SELECT
         [Id],[VarCharRow],[NVarCharRow],[UuidRow],[LongRow],[DateTimeRow],[SmallIntRow],[BitRow],[FloatRow],[RealRow]
     FROM 
         [TiberiusDeriveTest].[dbo].[TestRow]
+    WHERE VarCharRow is not null
     ORDER BY ID
         ";
 

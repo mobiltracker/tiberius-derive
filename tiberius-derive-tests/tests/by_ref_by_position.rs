@@ -21,13 +21,14 @@ struct TestRow<'a> {
 }
 
 #[tokio::test]
-async fn by_ref_indexed() -> Result<(), tiberius::error::Error> {
+async fn by_ref_indexed_not_null() -> Result<(), tiberius::error::Error> {
     let mut client = connect_localhost().await.unwrap();
     let query = r"
     SELECT
         [Id],[VarCharRow],[NVarCharRow],[UuidRow],[LongRow],[DateTimeRow],[SmallIntRow],[BitRow],[FloatRow],[RealRow]
     FROM 
         [TiberiusDeriveTest].[dbo].[TestRow]
+    WHERE VarCharRow is not null
     ORDER BY ID
         ";
 
