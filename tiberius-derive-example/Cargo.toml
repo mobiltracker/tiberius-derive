@@ -7,7 +7,7 @@ edition = "2018"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-tiberius = "0.7.1"
+tiberius = {git = "https://github.com/mobiltracker/tiberius", features=["serde", "chrono"]}
 futures = "0.3"
 futures-util = "0.3"
 tiberius-derive = {path = "../tiberius-derive"}
