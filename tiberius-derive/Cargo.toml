@@ -1,6 +1,6 @@
 [package]
 name = "tiberius-derive"
-version = "0.1.0"
+version = "0.0.1"
 authors = ["mlcruz1 <mlcruz@inf.ufrgs.br>"]
 edition = "2018"
 

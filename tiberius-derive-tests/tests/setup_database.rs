@@ -21,7 +21,8 @@ async fn test_database_up() {
             [DateTimeRow] [datetime] NULL,
             [SmallIntRow] [smallint] NULL,
             [BitRow] [bit] NULL,
-            [FloatRow] [float] NULL,
+            [FloatRow] [float](24) NULL,
+            [DoubleRow] [float](53) NULL,
             [RealRow] [real] NULL,
         );
     
@@ -37,9 +38,9 @@ async fn test_insert_rows() {
 
     let test_row = r#"
     INSERT INTO [TiberiusDeriveTest].[dbo].[TestRow] 
-    (Id, VarCharRow, NVarCharRow, UuidRow, LongRow, DateTimeRow, SmallIntRow, BitRow, FloatRow, RealRow) 
+    (Id, VarCharRow, NVarCharRow, UuidRow, LongRow, DateTimeRow, SmallIntRow, BitRow, FloatRow, DoubleRow, RealRow) 
     VALUES 
-    (1, 'varchar', 'nvarchar', '89e022ce-d3b6-43a7-a359-4618571487a6', 9999999999999999, '2021-01-01', 2, 1, 10.123123125, 10.5)
+    (1, 'varchar', 'nvarchar', '89e022ce-d3b6-43a7-a359-4618571487a6', 9999999999999999, '2021-01-01', 2, 1, 10.123123125, 99.1231231258, 10.5)
     "#;
 
     let test_row_null = r#"

@@ -15,7 +15,8 @@ struct TestRow {
     pub date_time_row: chrono::NaiveDateTime,
     pub small_int_row: i16,
     pub bit_row: bool,
-    pub float_row: f64,
+    pub float_row: f32,
+    pub double_row: f64,
     pub real_row: f32,
 }
 
@@ -32,7 +33,8 @@ struct TestRowNullable {
     pub DateTimeRow: Option<chrono::NaiveDateTime>,
     pub SmallIntRow: Option<i16>,
     pub BitRow: Option<bool>,
-    // pub FloatRow: Option<f64>, // borked. Breaks because tiberius inteprets a a nullable float field as F32(None)
+    pub FloatRow: Option<f32>,
+    // pub DoubleRow: Option<f64>, // borked. Breaks because tiberius inteprets a a nullable float field as F32(None)
     pub RealRow: Option<f32>,
 }
 
@@ -41,7 +43,7 @@ async fn by_value() -> Result<(), tiberius::error::Error> {
     let mut client = connect_localhost().await.unwrap();
     let query = r"
     SELECT
-        [Id],[VarCharRow],[NVarCharRow],[UuidRow],[LongRow],[DateTimeRow],[SmallIntRow],[BitRow],[FloatRow],[RealRow]
+        [Id],[VarCharRow],[NVarCharRow],[UuidRow],[LongRow],[DateTimeRow],[SmallIntRow],[BitRow],[FloatRow],[DoubleRow],[RealRow]
     FROM 
         [TiberiusDeriveTest].[dbo].[TestRow]
     WHERE VarCharRow is not null
@@ -69,6 +71,7 @@ async fn by_value() -> Result<(), tiberius::error::Error> {
         small_int_row: 2,
         bit_row: true,
         float_row: 10.123123125,
+        double_row: 99.1231231258,
         real_row: 10.5,
         uuid_row: Uuid::parse_str("89e022ce-d3b6-43a7-a359-4618571487a6").unwrap(),
         date_time_row: expected_time,
@@ -84,9 +87,7 @@ async fn by_value_nullable() -> Result<(), tiberius::error::Error> {
     let mut client = connect_localhost().await.unwrap();
     let query = r"
     SELECT
-        [Id],[VarCharRow],[NVarCharRow],[UuidRow],[LongRow],[DateTimeRow],[SmallIntRow],[BitRow],
-        -- [FloatRow],
-        [RealRow]
+        [Id],[VarCharRow],[NVarCharRow],[UuidRow],[LongRow],[DateTimeRow],[SmallIntRow],[BitRow],[FloatRow],[RealRow]
     FROM 
         [TiberiusDeriveTest].[dbo].[TestRow]
     ORDER BY ID
@@ -113,7 +114,7 @@ async fn by_value_nullable() -> Result<(), tiberius::error::Error> {
         LongRow: 9999999999999999.into(),
         SmallIntRow: 2.into(),
         BitRow: true.into(),
-        //      FloatRow: 10.123123125.into(),
+        FloatRow: 10.123123125.into(),
         RealRow: 10.5.into(),
         UuidRow: Uuid::parse_str("89e022ce-d3b6-43a7-a359-4618571487a6")
             .unwrap()

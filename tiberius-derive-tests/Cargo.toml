@@ -9,6 +9,6 @@ edition = "2021"
 tiberius = {version= "0.7.1", features = ["chrono"]}
 tiberius-derive = {path = "../tiberius-derive"}
 tokio = {version = "1.0", features = ["net", "time", "macros", "rt"]}
-once_cell = "*"
+once_cell = "1"
 tokio-util = { version = "0.6",features = ["compat"]}
 chrono = "0.4.19"

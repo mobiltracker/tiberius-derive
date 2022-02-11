@@ -7,7 +7,7 @@ use tokio_util::compat::{Compat, TokioAsyncWriteCompatExt};
 
 static CONN_STR: Lazy<String> = Lazy::new(|| {
     std::env::var("TIBERIUS_TEST_CONNECTION_STRING").unwrap_or_else(|_| {
-        "server=tcp:localhost,1433;IntegratedSecurity=true;TrustServerCertificate=true".to_owned()
+        "server=tcp:localhost,1433;User Id=localuser;Password=123456;IntegratedSecurity=true;TrustServerCertificate=true".to_owned()
     })
 });
 

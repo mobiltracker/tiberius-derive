@@ -16,7 +16,8 @@ struct TestRow<'a> {
     pub DateTimeRow: chrono::NaiveDateTime,
     pub SmallIntRow: i16,
     pub BitRow: bool,
-    pub FloatRow: f64,
+    pub FloatRow: f32,
+    pub DoubleRow: f64,
     pub RealRow: f32,
 }
 
@@ -31,7 +32,8 @@ struct TestRowNullable<'a> {
     pub DateTimeRow: Option<chrono::NaiveDateTime>,
     pub SmallIntRow: Option<i16>,
     pub BitRow: Option<bool>,
-    // pub FloatRow: Option<f64>, // borked. Breaks because tiberius inteprets a a nullable float field as F32(None)
+    pub FloatRow: Option<f32>, // borked. Breaks because tiberius inteprets a a nullable float field as F32(None)
+    //pub DoubleRow: Option<f64>, // borked. Breaks because tiberius inteprets a a nullable float field as F32(None)
     pub RealRow: Option<f32>,
 }
 
@@ -40,7 +42,7 @@ async fn by_ref_not_null() -> Result<(), tiberius::error::Error> {
     let mut client = connect_localhost().await.unwrap();
     let query = r"
     SELECT
-        [Id],[VarCharRow],[NVarCharRow],[UuidRow],[LongRow],[DateTimeRow],[SmallIntRow],[BitRow],[FloatRow],[RealRow]
+        [Id],[VarCharRow],[NVarCharRow],[UuidRow],[LongRow],[DateTimeRow],[SmallIntRow],[BitRow],[FloatRow],[DoubleRow],[RealRow]
     FROM 
         [TiberiusDeriveTest].[dbo].[TestRow]
     WHERE VarCharRow is not null
@@ -68,6 +70,7 @@ async fn by_ref_not_null() -> Result<(), tiberius::error::Error> {
         SmallIntRow: 2,
         BitRow: true,
         FloatRow: 10.123123125,
+        DoubleRow: 99.1231231258,
         RealRow: 10.5,
         UuidRow: Uuid::parse_str("89e022ce-d3b6-43a7-a359-4618571487a6").unwrap(),
         DateTimeRow: expected_time,
@@ -83,7 +86,9 @@ async fn by_ref_nullable() -> Result<(), tiberius::error::Error> {
     let mut client = connect_localhost().await.unwrap();
     let query = r"
     SELECT
-        [Id],[VarCharRow],[NVarCharRow],[UuidRow],[LongRow],[DateTimeRow],[SmallIntRow],[BitRow],[FloatRow],[RealRow]
+        [Id],[VarCharRow],[NVarCharRow],[UuidRow],[LongRow],[DateTimeRow],[SmallIntRow],[BitRow],[FloatRow],
+        --[DoubleRow],
+        [RealRow]
     FROM 
         [TiberiusDeriveTest].[dbo].[TestRow]
     ORDER BY ID
@@ -110,7 +115,8 @@ async fn by_ref_nullable() -> Result<(), tiberius::error::Error> {
         LongRow: 9999999999999999.into(),
         SmallIntRow: 2.into(),
         BitRow: true.into(),
-        //      FloatRow: 10.123123125.into(),
+        FloatRow: 10.123123125.into(),
+        //  DoubleRow: 99.1231231258.into(),
         RealRow: 10.5.into(),
         UuidRow: Uuid::parse_str("89e022ce-d3b6-43a7-a359-4618571487a6")
             .unwrap()

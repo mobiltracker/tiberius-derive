@@ -15,13 +15,4 @@ pub struct FoobarAuto<'a> {
     pub auto_opt: Option<String>,
 }
 
-// impl<'a> Foobar<'a> {
-//     fn from_row(__row: &'a tiberius::Row) -> Result<Foobar<'a>, tiberius::error::Error> {
-//         Ok(Self {
-//             foo: { __row.try_get("foo")? },
-//             bar: { __row.try_get("bar")? },
-//         })
-//     }
-// }
-
 fn main() {}
